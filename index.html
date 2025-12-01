@@ -7,7 +7,6 @@
     <style>
         body { font-family: Arial, sans-serif; background-color: #f0f2f5; padding: 20px; }
         
-        /* Controles */
         .controles {
             background: white;
             padding: 25px;
@@ -15,7 +14,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             max-width: 650px;
             margin: 0 auto 30px auto;
-            border-top: 5px solid #0056b3; /* Azul escuro */
+            border-top: 5px solid #0056b3;
         }
         .header-empresa {
             text-align: center; margin-bottom: 20px; color: #555; font-size: 14px;
@@ -29,7 +28,6 @@
         label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
         
-        /* Destaque para inputs importantes */
         #diasTrabalhados { border-color: #007bff; background-color: #f0f8ff; font-weight: bold; }
 
         button {
@@ -61,10 +59,7 @@
         .texto-recibo { font-size: 14px; line-height: 1.6; text-align: justify; margin-bottom: 15px; }
         
         .tabela-calculo {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 13px;
+            width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 13px;
         }
         .tabela-calculo th, .tabela-calculo td { border: 1px solid #ccc; padding: 6px; text-align: left; }
         .tabela-calculo th { background-color: #f9f9f9; }
@@ -153,12 +148,16 @@
     </div>
 
     <script>
-        // CONFIGURAÇÕES FIXAS DA EMPRESA
+        // --- CONFIGURAÇÕES ---
         const EMPRESA_NOME = "MARY MOVEIS PLANEJADOS LTDA";
-        // Formatei o CNPJ para ficar bonito na impressão
         const EMPRESA_CNPJ = "34.428.945/0002-01";
 
-        document.getElementById('dataPagamento').valueAsDate = new Date();
+        // Tenta definir a data automaticamente, se der erro, ignora
+        try {
+            document.getElementById('dataPagamento').valueAsDate = new Date();
+        } catch (e) {
+            console.log("Erro ao definir data automática");
+        }
 
         function formatarMoeda(valor) {
             return parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -170,6 +169,7 @@
             return `${dia}/${mes}/${ano}`;
         }
 
+        // Função para montar o HTML do recibo
         function montarRecibo(tipoVia, dados) {
             return `
             <div class="recibo">
@@ -231,19 +231,61 @@
             </div>`;
         }
 
+        // Função Principal com "TRY/CATCH" para avisar erros
         function gerarEImprimir() {
-            // Coleta de dados
-            const dias = parseFloat(document.getElementById('diasTrabalhados').value) || 0;
-            const unitAlmoco = parseFloat(document.getElementById('unitAlmoco').value) || 0;
-            const unitPassagem = parseFloat(document.getElementById('unitPassagem').value) || 0;
+            try {
+                // 1. Pegar valores dos campos
+                const diasEl = document.getElementById('diasTrabalhados');
+                const almocoEl = document.getElementById('unitAlmoco');
+                const passagemEl = document.getElementById('unitPassagem');
+                
+                // Conversão segura de valores
+                const dias = parseFloat(diasEl.value) || 0;
+                const unitAlmoco = parseFloat(almocoEl.value) || 0;
+                const unitPassagem = parseFloat(passagemEl.value) || 0;
 
-            // Cálculos
-            const totalAlmoco = dias * unitAlmoco;
-            const totalPassagem = dias * unitPassagem * 2; // Ida e Volta
-            const totalGeral = totalAlmoco + totalPassagem;
+                // 2. Cálculos
+                const totalAlmoco = dias * unitAlmoco;
+                const totalPassagem = dias * unitPassagem * 2; // Ida e Volta (2x)
+                const totalGeral = totalAlmoco + totalPassagem;
 
-            const dados = {
-                funcionario: document.getElementById('nomeFuncionario').value || ".......................",
-                cpf: document.getElementById('cpfFuncionario').value || ".......................",
-                periodo: document.getElementById('periodo').value || ".......................",
-                data: formatarData(document.getElementById('dataPagamento').value),
+                // 3. Preparar dados
+                const dados = {
+                    funcionario: document.getElementById('nomeFuncionario').value || "_______________________",
+                    cpf: document.getElementById('cpfFuncionario').value || "___.___.___-__",
+                    periodo: document.getElementById('periodo').value || "________________",
+                    data: formatarData(document.getElementById('dataPagamento').value),
+                    dias: dias,
+                    unitAlmoco: formatarMoeda(unitAlmoco),
+                    unitPassagem: formatarMoeda(unitPassagem),
+                    totalAlmoco: formatarMoeda(totalAlmoco),
+                    totalPassagem: formatarMoeda(totalPassagem),
+                    totalGeral: formatarMoeda(totalGeral)
+                };
+
+                // 4. Gerar HTML
+                const htmlViaEmpresa = montarRecibo("VIA DA MARY MÓVEIS (ARQUIVO)", dados);
+                const htmlViaFuncionario = montarRecibo("VIA DO COLABORADOR", dados);
+                const linhaCorte = '<div class="linha-corte"></div>';
+
+                const areaRecibos = document.getElementById('areaRecibos');
+                if (!areaRecibos) throw new Error("Erro interno: Área de recibos não encontrada.");
+                
+                areaRecibos.innerHTML = htmlViaEmpresa + linhaCorte + htmlViaFuncionario;
+
+                // 5. Exibir e Imprimir
+                const folha = document.getElementById('folhaImpressao');
+                folha.classList.add('visivel');
+                
+                setTimeout(function() {
+                    window.print();
+                }, 500); // Pequeno atraso para garantir que tudo carregou
+
+            } catch (erro) {
+                alert("Ops! Ocorreu um erro: " + erro.message);
+                console.error(erro);
+            }
+        }
+    </script>
+</body>
+</html>
