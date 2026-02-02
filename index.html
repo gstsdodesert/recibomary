@@ -43,53 +43,35 @@
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto;
-            padding: 10mm;
+            padding: 15mm;
             display: none;
             box-sizing: border-box;
         }
 
         .recibo {
             border: 2px solid #000;
-            padding: 20px;
-            margin-bottom: 25px;
+            padding: 30px;
             position: relative;
         }
 
-        .titulo { text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 20px; text-transform: uppercase; background-color: #eee; padding: 5px; }
-        .texto-recibo { font-size: 14px; line-height: 1.6; text-align: justify; margin-bottom: 15px; }
+        .titulo { text-align: center; font-weight: bold; font-size: 20px; margin-bottom: 25px; text-transform: uppercase; background-color: #eee; padding: 8px; }
+        .texto-recibo { font-size: 15px; line-height: 1.8; text-align: justify; margin-bottom: 20px; }
         
         .tabela-calculo {
-            width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 13px;
+            width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;
         }
-        .tabela-calculo th, .tabela-calculo td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-        .tabela-calculo th { background-color: #f9f9f9; }
-        .total-destaque { font-weight: bold; background-color: #eee; font-size: 14px; }
+        .tabela-calculo th, .tabela-calculo td { border: 1px solid #000; padding: 10px; text-align: left; }
+        .tabela-calculo th { background-color: #f2f2f2; }
+        .total-destaque { font-weight: bold; background-color: #eee; font-size: 16px; }
 
-        .assinaturas { display: flex; justify-content: space-between; margin-top: 40px; }
-        .assinatura-box { text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 5px; font-size: 12px; }
-        .tipo-via { position: absolute; top: -10px; right: 10px; background: white; padding: 0 5px; font-size: 11px; font-weight: bold; }
+        .assinaturas { display: flex; justify-content: space-between; margin-top: 60px; }
+        .assinatura-box { text-align: center; width: 45%; border-top: 1px solid #000; padding-top: 8px; font-size: 13px; }
         
-        .linha-corte {
-            border-bottom: 2px dashed #999;
-            margin: 30px 0;
-            position: relative;
-        }
-        .linha-corte::after {
-            content: "✂ Corte aqui";
-            position: absolute;
-            right: 0;
-            top: -12px;
-            background: white;
-            padding-left: 10px;
-            font-size: 12px;
-            color: #666;
-        }
-
         @media print {
             body { background: white; padding: 0; }
             .controles { display: none; }
             .folha-a4 { display: block; width: 100%; margin: 0; }
-            @page { margin: 0.5cm; size: A4; }
+            @page { margin: 1cm; size: A4; }
         }
         .visivel { display: block !important; }
     </style>
@@ -106,11 +88,11 @@
         <div class="row">
             <div class="col">
                 <label>Nome do Funcionário/Montador:</label>
-                <input type="text" id="nomeFuncionario">
+                <input type="text" id="nomeFuncionario" placeholder="Nome Completo">
             </div>
             <div class="col">
                 <label>CPF:</label>
-                <input type="text" id="cpfFuncionario">
+                <input type="text" id="cpfFuncionario" maxlength="14" placeholder="000.000.000-00">
             </div>
         </div>
 
@@ -128,19 +110,18 @@
         <div class="row">
             <div class="col">
                 <label>Valor Unitário Almoço (R$):</label>
-                <input type="number" step="0.01" id="unitAlmoco" placeholder="0,00">
+                <input type="number" step="0.01" id="unitAlmoco" value="22.00">
             </div>
             <div class="col">
                 <label>Valor Unitário Passagem (R$):</label>
-                <input type="number" step="0.01" id="unitPassagem" placeholder="0,00">
+                <input type="number" step="0.01" id="unitPassagem" value="5.00">
             </div>
         </div>
-        <small style="color: #666; display: block;">*Cálculo auto: 1 Almoço por dia + 2 Passagens (Ida/Volta) por dia.</small>
 
         <label style="margin-top: 15px;">Data do Pagamento:</label>
         <input type="date" id="dataPagamento">
 
-        <button onclick="gerarEImprimir()">Gerar Recibo Mary Móveis</button>
+        <button onclick="gerarEImprimir()">Gerar Recibo Único</button>
     </div>
 
     <div class="folha-a4" id="folhaImpressao">
@@ -148,16 +129,24 @@
     </div>
 
     <script>
-        // --- CONFIGURAÇÕES ---
         const EMPRESA_NOME = "MARY MOVEIS PLANEJADOS LTDA";
         const EMPRESA_CNPJ = "34.428.945/0002-01";
 
-        // Tenta definir a data automaticamente, se der erro, ignora
+        // --- MÁSCARA DE CPF ---
+        document.getElementById('cpfFuncionario').addEventListener('input', function (e) {
+            let v = e.target.value.replace(/\D/g, ""); // Remove tudo que não é dígito
+            if (v.length <= 11) {
+                v = v.replace(/(\d{3})(\d)/, "$1.$2");
+                v = v.replace(/(\d{3})(\d)/, "$1.$2");
+                v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+            }
+            e.target.value = v;
+        });
+
+        // Define data de hoje
         try {
             document.getElementById('dataPagamento').valueAsDate = new Date();
-        } catch (e) {
-            console.log("Erro ao definir data automática");
-        }
+        } catch (e) {}
 
         function formatarMoeda(valor) {
             return parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -169,17 +158,15 @@
             return `${dia}/${mes}/${ano}`;
         }
 
-        // Função para montar o HTML do recibo
-        function montarRecibo(tipoVia, dados) {
+        function montarRecibo(dados) {
             return `
             <div class="recibo">
-                <span class="tipo-via">${tipoVia}</span>
                 <div class="titulo">Recibo de Vale Transporte e Alimentação</div>
                 
                 <div class="texto-recibo">
                     Eu, <b>${dados.funcionario}</b>, portador(a) do CPF nº ${dados.cpf}, declaro ter recebido da empresa 
                     <b>${EMPRESA_NOME}</b>, inscrita no CNPJ nº ${EMPRESA_CNPJ}, a importância líquida total de 
-                    <b>R$ ${dados.totalGeral}</b>, referente ao período de ${dados.periodo}.
+                    <b>R$ ${dados.totalGeral}</b>, referente ao reembolso/pagamento de despesas de alimentação e transporte para o período de ${dados.periodo}.
                 </div>
 
                 <table class="tabela-calculo">
@@ -205,53 +192,44 @@
                         <td>R$ ${dados.totalPassagem}</td>
                     </tr>
                     <tr class="total-destaque">
-                        <td colspan="4" style="text-align: right;">TOTAL A RECEBER:</td>
+                        <td colspan="4" style="text-align: right;">TOTAL LÍQUIDO A RECEBER:</td>
                         <td>R$ ${dados.totalGeral}</td>
                     </tr>
                 </table>
 
-                <div class="texto-recibo" style="margin-top: 15px; font-size: 12px; color: #333;">
-                    Declaro, para os devidos fins, que recebi os valores acima para custear meu deslocamento e alimentação nos dias trabalhados.
+                <div class="texto-recibo" style="margin-top: 20px; font-size: 13px;">
+                    O valor acima quitado refere-se estritamente ao custeio de deslocamento e alimentação necessários para a execução dos serviços, não integrando a remuneração para quaisquer fins legais.
                 </div>
 
-                <div style="text-align: right; margin-top: 15px; margin-bottom: 40px;">
+                <div style="text-align: right; margin-top: 30px; margin-bottom: 60px;">
                     Local e Data: ____________________, ${dados.data}
                 </div>
 
                 <div class="assinaturas">
                     <div class="assinatura-box">
                         <strong>${EMPRESA_NOME}</strong><br>
-                        <span style="font-size: 10px">Assinatura do Responsável</span>
+                        <span>Responsável</span>
                     </div>
                     <div class="assinatura-box">
                         <strong>${dados.funcionario}</strong><br>
-                        <span style="font-size: 10px">Assinatura do Recebedor</span>
+                        <span>Assinatura do Recebedor</span>
                     </div>
                 </div>
             </div>`;
         }
 
-        // Função Principal com "TRY/CATCH" para avisar erros
         function gerarEImprimir() {
             try {
-                // 1. Pegar valores dos campos
-                const diasEl = document.getElementById('diasTrabalhados');
-                const almocoEl = document.getElementById('unitAlmoco');
-                const passagemEl = document.getElementById('unitPassagem');
-                
-                // Conversão segura de valores
-                const dias = parseFloat(diasEl.value) || 0;
-                const unitAlmoco = parseFloat(almocoEl.value) || 0;
-                const unitPassagem = parseFloat(passagemEl.value) || 0;
+                const dias = parseFloat(document.getElementById('diasTrabalhados').value) || 0;
+                const unitAlmoco = parseFloat(document.getElementById('unitAlmoco').value) || 0;
+                const unitPassagem = parseFloat(document.getElementById('unitPassagem').value) || 0;
 
-                // 2. Cálculos
                 const totalAlmoco = dias * unitAlmoco;
-                const totalPassagem = dias * unitPassagem * 2; // Ida e Volta (2x)
+                const totalPassagem = dias * unitPassagem * 2;
                 const totalGeral = totalAlmoco + totalPassagem;
 
-                // 3. Preparar dados
                 const dados = {
-                    funcionario: document.getElementById('nomeFuncionario').value || "_______________________",
+                    funcionario: document.getElementById('nomeFuncionario').value.toUpperCase() || "_______________________",
                     cpf: document.getElementById('cpfFuncionario').value || "___.___.___-__",
                     periodo: document.getElementById('periodo').value || "________________",
                     data: formatarData(document.getElementById('dataPagamento').value),
@@ -263,27 +241,13 @@
                     totalGeral: formatarMoeda(totalGeral)
                 };
 
-                // 4. Gerar HTML
-                const htmlViaEmpresa = montarRecibo("VIA DA MARY MÓVEIS (ARQUIVO)", dados);
-                const htmlViaFuncionario = montarRecibo("VIA DO COLABORADOR", dados);
-                const linhaCorte = '<div class="linha-corte"></div>';
-
-                const areaRecibos = document.getElementById('areaRecibos');
-                if (!areaRecibos) throw new Error("Erro interno: Área de recibos não encontrada.");
+                document.getElementById('areaRecibos').innerHTML = montarRecibo(dados);
+                document.getElementById('folhaImpressao').classList.add('visivel');
                 
-                areaRecibos.innerHTML = htmlViaEmpresa + linhaCorte + htmlViaFuncionario;
-
-                // 5. Exibir e Imprimir
-                const folha = document.getElementById('folhaImpressao');
-                folha.classList.add('visivel');
-                
-                setTimeout(function() {
-                    window.print();
-                }, 500); // Pequeno atraso para garantir que tudo carregou
+                setTimeout(() => { window.print(); }, 300);
 
             } catch (erro) {
-                alert("Ops! Ocorreu um erro: " + erro.message);
-                console.error(erro);
+                alert("Erro: " + erro.message);
             }
         }
     </script>
